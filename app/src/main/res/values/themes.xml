@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Standart Tema - Material3 NoActionBar -->
+    <style name="Theme.ContactV2" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/deep_charcoal</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Splash Screen Teması -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/deep_charcoal</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/app_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.ContactV2</item>
+    </style>
+
+    <color name="deep_charcoal">#121212</color>
+</resources>
