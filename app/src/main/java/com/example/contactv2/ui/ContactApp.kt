@@ -1,81 +1,84 @@
 package com.example.contactv2.ui
 
-import android.Manifest
+import android. Manifest
 import android.app.AlarmManager
-import android.app.NotificationChannel
+import android.app. NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.TimePickerDialog
 import android.content.BroadcastReceiver
 import android.content.Context
-import android.content.Intent
+import android. content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
-import android.graphics.Matrix
+import android. content.pm.PackageManager
+import android. graphics.Matrix
 import android.graphics.SweepGradient
-import android.net.Uri
-import android.os.Build
+import android. net.Uri
+import android.os. Build
 import android.provider.CallLog
 import android.provider.Settings
+import android.util.Log
+import android.widget. Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
+import androidx.compose.foundation. BorderStroke
+import androidx.compose. foundation.Canvas
+import androidx.compose.foundation. Image
+import androidx.compose.foundation. background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose. foundation.clickable
+import androidx. compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation. gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
+import androidx. compose.foundation.layout.*
+import androidx.compose.foundation.lazy. LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
+import androidx.compose. foundation.shape.RoundedCornerShape
+import androidx.compose. foundation.text.KeyboardOptions
+import androidx.compose. material. icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.CallMade
-import androidx.compose.material.icons.automirrored.rounded.CallMissed
-import androidx.compose.material.icons.automirrored.rounded.CallReceived
-import androidx.compose.material.icons.automirrored.rounded.Message
-import androidx.compose.material.icons.automirrored.rounded.PhoneCallback
-import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.automirrored. rounded.CallMissed
+import androidx.compose. material.icons.automirrored.rounded.CallReceived
+import androidx.compose.material.icons.automirrored. rounded.Message
+import androidx.compose.material. icons.automirrored.rounded.PhoneCallback
+import androidx.compose.material. icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui. draw.blur
+import androidx.compose.ui. draw.clip
+import androidx.compose.ui. draw.drawBehind
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui. geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui. graphics.*
+import androidx.compose.ui. graphics.drawscope.clipPath
+import androidx.compose.ui. graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll. NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll. NestedScrollSource
+import androidx.compose.ui. input.nestedscroll.nestedScroll
+import androidx.compose.ui. input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui. platform.LocalDensity
+import androidx.compose.ui.platform. LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose. ui.text.font.FontFamily
+import androidx.compose.ui. text.font.FontWeight
+import androidx.compose.ui.text. input.KeyboardType
+import androidx.compose. ui.text.input. PasswordVisualTransformation
+import androidx.compose. ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx. compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
-import androidx.core.net.toUri
+import androidx.core.content. ContextCompat
+import androidx.core. net.toUri
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -84,15 +87,22 @@ import androidx.navigation.compose.rememberNavController
 import com.example.contactv2.FakeCallReceiver
 import com.example.contactv2.R
 import com.example.contactv2.model.Contact
-import com.example.contactv2.ui.theme.*
+import com.example. contactv2.ui.theme.*
 import com.example.contactv2.viewmodel.ContactViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines. isActive
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.random.Random
+
+// Constants to avoid magic numbers
+private const val SCROLL_THRESHOLD = 15f
+private const val ACTION_THRESHOLD = 0.8f
+private const val MATRIX_DELAY = 40L
+private const val TAG = "ContactApp"
 
 @Composable
 fun ContactApp(viewModel: ContactViewModel) {
@@ -111,6 +121,10 @@ fun ContactApp(viewModel: ContactViewModel) {
     val focusManager = LocalFocusManager.current
     val interactionSource = remember { MutableInteractionSource() }
 
+    LaunchedEffect(Unit) {
+        viewModel.initPrefs(context)
+    }
+
     LaunchedEffect(searchQuery) {
         if (searchQuery == "#292853") {
             showEasterEgg = true
@@ -120,26 +134,39 @@ fun ContactApp(viewModel: ContactViewModel) {
         }
     }
 
+    // FIX 1: Memory Leak - Use applicationContext and proper unregister
     DisposableEffect(context) {
+        val appContext = context.applicationContext
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 activeFakeCallTime = null
             }
         }
         val filter = IntentFilter("com.example.contactv2.ACTION_CALL_STARTED")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES. TIRAMISU) {
+                appContext.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                @Suppress("UnspecifiedRegisterReceiverFlag")
+                appContext.registerReceiver(receiver, filter)
+            }
+        } catch (e:  Exception) {
+            Log.e(TAG, "Error registering receiver", e)
         }
-        onDispose { context.unregisterReceiver(receiver) }
+        onDispose {
+            try {
+                appContext.unregisterReceiver(receiver)
+            } catch (e: Exception) {
+                Log. e(TAG, "Error unregistering receiver", e)
+            }
+        }
     }
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (available.y < -15) isSearchBarVisible = false
-                if (available.y > 15) isSearchBarVisible = true
+            override fun onPreScroll(available:  Offset, source: NestedScrollSource): Offset {
+                if (available.y < -SCROLL_THRESHOLD) isSearchBarVisible = false
+                if (available.y > SCROLL_THRESHOLD) isSearchBarVisible = true
                 return Offset.Zero
             }
         }
@@ -155,7 +182,7 @@ fun ContactApp(viewModel: ContactViewModel) {
             ) { focusManager.clearFocus() }
     ) {
         Scaffold(
-            containerColor = Color.Transparent,
+            containerColor = Color. Transparent,
             bottomBar = { BottomNavigationBar(navController) },
             modifier = Modifier
                 .fillMaxSize()
@@ -165,7 +192,7 @@ fun ContactApp(viewModel: ContactViewModel) {
             NavHost(
                 navController = navController,
                 startDestination = "contacts",
-                modifier = Modifier.padding(padding)
+                modifier = Modifier. padding(padding)
             ) {
                 composable("history") { HistoryScreen() }
                 composable("contacts") {
@@ -179,7 +206,11 @@ fun ContactApp(viewModel: ContactViewModel) {
                 composable("add_contact") {
                     AddContactDialog(
                         viewModel = viewModel,
-                        onDismiss = { navController.navigate("contacts") }
+                        onDismiss = {
+                            if (navController.currentDestination?. route == "add_contact") {
+                                navController.popBackStack()
+                            }
+                        }
                     )
                 }
             }
@@ -190,7 +221,7 @@ fun ContactApp(viewModel: ContactViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black.copy(alpha = 0.4f)),
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment. Center
             ) {
                 TerminalWindow(password ?: "----")
             }
@@ -266,8 +297,8 @@ fun TerminalWindow(password: String) {
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    "root@system:~",
-                    color = Color.Gray,
+                    "root@system: ~",
+                    color = Color. Gray,
                     fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace
                 )
@@ -283,22 +314,22 @@ fun TerminalWindow(password: String) {
                 TerminalMatrixEffect()
 
                 Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier. fillMaxSize(),
+                    verticalArrangement = Arrangement. Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "RUNNING DECRYPTOR...",
+                        "RUNNING DECRYPTOR.. .",
                         color = matrixGreen,
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.alpha(0.8f)
+                        modifier = Modifier. alpha(0.8f)
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Box(
                         modifier = Modifier
-                            .background(Color.Black.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
-                            .border(1.dp, matrixGreen.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .background(Color. Black. copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                            .border(1.dp, matrixGreen. copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 24.dp, vertical = 16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -307,7 +338,7 @@ fun TerminalWindow(password: String) {
                             color = matrixGreen,
                             fontSize = 42.sp,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+                            fontFamily = FontFamily. Monospace
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -316,7 +347,7 @@ fun TerminalWindow(password: String) {
                         color = matrixGreen,
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace,
-                        modifier = Modifier.alpha(0.6f)
+                        modifier = Modifier. alpha(0.6f)
                     )
                 }
             }
@@ -327,7 +358,7 @@ fun TerminalWindow(password: String) {
 @Composable
 fun TerminalMatrixEffect() {
     val matrixGreen = Color(0xFF00FF41)
-    val characters = remember { "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$#@%&*".toList() }
+    val characters = remember { "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ$#@%&*". toList() }
     val columnCount = 18
     val streamStates = remember {
         List(columnCount) {
@@ -335,34 +366,43 @@ fun TerminalMatrixEffect() {
         }
     }
 
+    // FIX 3 & 12: Cache Paint object for performance
+    val paint = remember {
+        android.graphics.Paint().apply {
+            isFakeBoldText = true
+        }
+    }
+
+    // FIX 2: CPU Overuse - isActive check to prevent memory leak
     LaunchedEffect(Unit) {
-        while (true) {
+        while (isActive) {
             streamStates.forEach { state ->
                 state.floatValue += 0.4f
                 if (state.floatValue > 30) state.floatValue = Random.nextInt(-20, 0).toFloat()
             }
-            delay(40)
+            delay(MATRIX_DELAY)
         }
     }
 
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val charSize = size.width / columnCount
+        val charSize = size. width / columnCount
         streamStates.forEachIndexed { index, state ->
             val x = index * charSize
-            for (i in 0..20) {
+            for (i in 0.. 20) {
                 val y = (state.floatValue + i) * charSize
+                if (y < -charSize || y > size.height + charSize) continue
+
                 val char = characters[Random.nextInt(characters.size)]
                 val alpha = (1f - (i / 20f)).coerceIn(0f, 0.4f)
 
                 drawContext.canvas.nativeCanvas.drawText(
-                    char.toString(),
+                    char. toString(),
                     x,
                     y,
-                    android.graphics.Paint().apply {
+                    paint. apply {
                         color = matrixGreen.toArgb()
                         textSize = charSize * 0.7f
                         this.alpha = (alpha * 255).toInt()
-                        isFakeBoldText = true
                     }
                 )
             }
@@ -397,7 +437,7 @@ fun StarfieldBackground(listState: LazyListState) {
 
     Spacer(
         modifier = Modifier
-            .fillMaxSize()
+            . fillMaxSize()
             .drawBehind {
                 val scrollOffset = listState.firstVisibleItemIndex * 500f + listState.firstVisibleItemScrollOffset
                 stars.forEach { star ->
@@ -406,7 +446,7 @@ fun StarfieldBackground(listState: LazyListState) {
                     val center = Offset(star.x * size.width, finalY)
 
                     drawCircle(
-                        color = Color.White.copy(alpha = star.alpha * twinkleAlpha),
+                        color = Color.White. copy(alpha = star.alpha * twinkleAlpha),
                         radius = star.size,
                         center = center
                     )
@@ -418,22 +458,22 @@ fun StarfieldBackground(listState: LazyListState) {
 data class Star(val x: Float, val y: Float, val size: Float, val alpha: Float, val speedMultiplier: Float)
 
 @Composable
-fun BottomNavigationBar(navController: NavHostController) {
+fun BottomNavigationBar(navController:  NavHostController) {
     val items = remember {
         listOf(
-            NavigationItem("history", "Sonlar", Icons.Rounded.History),
-            NavigationItem("contacts", "Kişiler", Icons.Rounded.People),
+            NavigationItem("history", "Sonlar", Icons. Rounded.History),
+            NavigationItem("contacts", "Kişiler", Icons.Rounded. People),
             NavigationItem("add_contact", "Ekle", Icons.Rounded.PersonAdd)
         )
     }
 
     Surface(
-        color = SurfaceGrey.copy(alpha = 0.8f),
+        color = SurfaceGrey. copy(alpha = 0.8f),
         tonalElevation = 0.dp,
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .clip(RoundedCornerShape(24.dp))
-            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(24.dp))
+            .border(1.dp, Color.White. copy(alpha = 0.1f), RoundedCornerShape(24.dp))
     ) {
         Row(
             modifier = Modifier
@@ -444,7 +484,7 @@ fun BottomNavigationBar(navController: NavHostController) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             val navBackStackEntry by navController.currentBackStackEntryAsState()
-            val currentRoute = navBackStackEntry?.destination?.route
+            val currentRoute = navBackStackEntry?.destination?. route
 
             items.forEach { item ->
                 val selected = currentRoute == item.route
@@ -526,17 +566,18 @@ fun ContactListScreen(
     onMenuClick: () -> Unit,
     showOnlyHidden: Boolean = false
 ) {
-    val contacts by if (showOnlyHidden) viewModel.hiddenContacts.collectAsState() else viewModel.filteredContacts.collectAsState()
+    val contacts by if (showOnlyHidden) viewModel.hiddenContacts. collectAsState() else viewModel.filteredContacts.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val listState = rememberLazyListState()
     val isScrolling by remember { derivedStateOf { listState.isScrollInProgress } }
     var expandedId by remember { mutableStateOf<String?>(null) }
+    val focusManager = LocalFocusManager.current
 
     Box(modifier = Modifier.fillMaxSize()) {
         StarfieldBackground(listState)
 
         Column(modifier = Modifier.fillMaxSize()) {
-            if (!showOnlyHidden) {
+            if (! showOnlyHidden) {
                 AnimatedVisibility(
                     visible = isSearchBarVisible,
                     enter = slideInVertically() + fadeIn(),
@@ -551,14 +592,14 @@ fun ContactListScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(48.dp)
+                                . height(48.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(SurfaceGrey.copy(alpha = 0.6f))
+                                .background(SurfaceGrey. copy(alpha = 0.6f))
                                 .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp)),
                             contentAlignment = Alignment.Center
                         ) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                if (searchQuery.isEmpty()) {
+                                if (searchQuery. isEmpty()) {
                                     Image(
                                         painter = painterResource(id = R.drawable.app_logo),
                                         contentDescription = "Logo",
@@ -569,13 +610,19 @@ fun ContactListScreen(
                                 TextField(
                                     value = searchQuery,
                                     onValueChange = { viewModel.updateSearchQuery(it) },
-                                    modifier = Modifier.fillMaxSize(),
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .onFocusChanged { focusState ->
+                                            if (! focusState.isFocused) {
+                                                focusManager.clearFocus()
+                                            }
+                                        },
                                     placeholder = null,
                                     leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = ElectricPurple, modifier = Modifier.size(20.dp)) },
                                     colors = TextFieldDefaults.colors(
                                         focusedContainerColor = Color.Transparent,
                                         unfocusedContainerColor = Color.Transparent,
-                                        focusedIndicatorColor = Color.Transparent,
+                                        focusedIndicatorColor = Color. Transparent,
                                         unfocusedIndicatorColor = Color.Transparent,
                                         cursorColor = ElectricPurple,
                                         focusedTextColor = Color.White,
@@ -591,19 +638,19 @@ fun ContactListScreen(
                                 onClick = onMenuClick,
                                 modifier = Modifier
                                     .size(44.dp)
-                                    .background(SurfaceGrey.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                    . background(SurfaceGrey.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                                     .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
                             ) {
-                                Icon(Icons.Rounded.MoreVert, contentDescription = "Menü", tint = VividPink, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Rounded. MoreVert, contentDescription = "Menü", tint = VividPink, modifier = Modifier.size(20.dp))
                             }
                             if (hasActiveFakeCall) {
                                 Box(
                                     modifier = Modifier
                                         .size(10.dp)
-                                        .align(Alignment.TopEnd)
+                                        . align(Alignment.TopEnd)
                                         .offset(x = 2.dp, y = (-2).dp)
-                                        .background(VividPink, CircleShape)
-                                        .border(2.dp, DeepCharcoal, CircleShape)
+                                        . background(VividPink, CircleShape)
+                                        . border(2.dp, DeepCharcoal, CircleShape)
                                 )
                             }
                         }
@@ -629,7 +676,7 @@ fun ContactListScreen(
                         contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp)
                     ) {
                         itemsIndexed(contacts, key = { _, contact -> contact.id }) { _, contact ->
-                            val isExpanded = expandedId == contact.id
+                            val isExpanded = expandedId == contact. id
                             QuickSwipeContactItem(
                                 contact = contact,
                                 isExpanded = isExpanded,
@@ -668,14 +715,14 @@ fun QuickSwipeContactItem(contact: Contact, isExpanded: Boolean, isScrolling: Bo
             .clip(RoundedCornerShape(16.dp))
             .background(
                 when {
-                    swipeOffset.value > 50f -> CallGreen.copy(alpha = 0.8f)
+                    swipeOffset.value > 50f -> CallGreen. copy(alpha = 0.8f)
                     swipeOffset.value < -50f -> MsgBlue.copy(alpha = 0.8f)
-                    else -> Color.Transparent
+                    else -> Color. Transparent
                 }
             )
     ) {
         Row(
-            modifier = Modifier.matchParentSize().padding(horizontal = 24.dp),
+            modifier = Modifier. matchParentSize().padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -702,10 +749,24 @@ fun QuickSwipeContactItem(contact: Contact, isExpanded: Boolean, isScrolling: Bo
                         detectHorizontalDragGestures(
                             onDragEnd = {
                                 launch {
-                                    if (swipeOffset.value > maxSwipe * 0.8f) {
-                                        context.startActivity(Intent(Intent.ACTION_CALL).apply { data = "tel:${contact.phoneNumber}".toUri() })
-                                    } else if (swipeOffset.value < -maxSwipe * 0.8f) {
-                                        context.startActivity(Intent(Intent.ACTION_SENDTO).apply { data = "smsto:${contact.phoneNumber}".toUri() })
+                                    if (swipeOffset.value > maxSwipe * ACTION_THRESHOLD) {
+                                        if (ContextCompat.checkSelfPermission(context, Manifest.permission. CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                                            try {
+                                                context.startActivity(Intent(Intent.ACTION_CALL).apply { data = "tel:${contact.phoneNumber}".toUri() })
+                                            } catch (e: Exception) {
+                                                Log.e(TAG, "Error making call", e)
+                                                Toast.makeText(context, "Arama başlatılamadı", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } else {
+                                            Toast. makeText(context, "Arama izni gerekli", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else if (swipeOffset.value < -maxSwipe * ACTION_THRESHOLD) {
+                                        try {
+                                            context.startActivity(Intent(Intent.ACTION_SENDTO).apply { data = "smsto:${contact.phoneNumber}".toUri() })
+                                        } catch (e: Exception) {
+                                            Log.e(TAG, "Error sending SMS", e)
+                                            Toast.makeText(context, "SMS gönderilemedi", Toast.LENGTH_SHORT).show()
+                                        }
                                     }
                                     swipeOffset.animateTo(0f, spring(stiffness = Spring.StiffnessMediumLow))
                                 }
@@ -715,9 +776,8 @@ fun QuickSwipeContactItem(contact: Contact, isExpanded: Boolean, isScrolling: Bo
                             },
                             onHorizontalDrag = { change, dragAmount ->
                                 change.consume()
-                                val newOffset = (swipeOffset.value + dragAmount * 0.4f).coerceIn(-maxSwipe * 1.05f, maxSwipe * 1.05f)
                                 launch {
-                                    swipeOffset.snapTo(newOffset)
+                                    swipeOffset.snapTo((swipeOffset.value + dragAmount * 0.4f).coerceIn(-maxSwipe * 1.05f, maxSwipe * 1.05f))
                                 }
                             }
                         )
@@ -738,7 +798,7 @@ fun ContactItemContent(contact: Contact, isExpanded: Boolean, onExpand: () -> Un
         EditContactDialog(
             contact = contact,
             onDismiss = { showEditDialog = false },
-            onSave = { updatedContact: Contact ->
+            onSave = { updatedContact:  Contact ->
                 viewModel.updateContact(context, updatedContact)
                 showEditDialog = false
             }
@@ -765,17 +825,17 @@ fun ContactItemContent(contact: Contact, isExpanded: Boolean, onExpand: () -> Un
     )
 
     val neonBrush = remember(angle) {
-        object : ShaderBrush() {
+        object :  ShaderBrush() {
             override fun createShader(size: Size): android.graphics.Shader {
                 val shader = SweepGradient(
                     size.width / 2,
                     size.height / 2,
                     intArrayOf(
-                        ElectricPurple.toArgb(),
-                        Color.Black.toArgb(), 
+                        ElectricPurple. toArgb(),
+                        Color.Black.toArgb(),
                         VividPink.toArgb(),
-                        Color.Black.toArgb(), 
-                        Color.Cyan.toArgb(),
+                        Color.Black.toArgb(),
+                        Color. Cyan.toArgb(),
                         ElectricPurple.toArgb()
                     ),
                     null
@@ -795,9 +855,9 @@ fun ContactItemContent(contact: Contact, isExpanded: Boolean, onExpand: () -> Un
             .clip(RoundedCornerShape(16.dp))
             .then(
                 if (ledAlpha > 0.1f) {
-                    Modifier.border(BorderStroke(4.dp, neonBrush), RoundedCornerShape(16.dp))
+                    Modifier. border(BorderStroke(4.dp, neonBrush), RoundedCornerShape(16.dp))
                 } else {
-                    Modifier.border(BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)), RoundedCornerShape(16.dp))
+                    Modifier. border(BorderStroke(0.5.dp, Color.White.copy(alpha = 0.1f)), RoundedCornerShape(16.dp))
                 }
             )
             .clickable(
@@ -814,13 +874,13 @@ fun ContactItemContent(contact: Contact, isExpanded: Boolean, onExpand: () -> Un
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = contact.name,
+                            text = contact. name,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                             color = Color.White
                         )
                         if (contact.expiryTimestamp != null) {
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier. width(6.dp))
                             Icon(Icons.Rounded.Timer, "Geçici", tint = VividPink, modifier = Modifier.size(14.dp))
                         }
                     }
@@ -835,9 +895,9 @@ fun ContactItemContent(contact: Contact, isExpanded: Boolean, onExpand: () -> Un
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Icon(
-                    imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                    imageVector = if (isExpanded) Icons.Rounded. ExpandLess else Icons.Rounded. ExpandMore,
                     contentDescription = null,
-                    tint = SoftGrey.copy(alpha = 0.4f),
+                    tint = SoftGrey. copy(alpha = 0.4f),
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -854,12 +914,26 @@ fun ContactItemContent(contact: Contact, isExpanded: Boolean, onExpand: () -> Un
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
                     ActionButtonSmall(Icons.Rounded.Call, "Ara", CallGreen) {
-                        context.startActivity(Intent(Intent.ACTION_CALL).apply { data = "tel:${contact.phoneNumber}".toUri() })
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_CALL).apply { data = "tel:${contact.phoneNumber}". toUri() })
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error making call", e)
+                                Toast.makeText(context, "Arama başlatılamadı", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            Toast.makeText(context, "Arama izni gerekli", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                    ActionButtonSmall(Icons.AutoMirrored.Rounded.Message, "SMS", MsgBlue) {
-                        context.startActivity(Intent(Intent.ACTION_SENDTO).apply { data = "smsto:${contact.phoneNumber}".toUri() })
+                    ActionButtonSmall(Icons.AutoMirrored.Rounded. Message, "SMS", MsgBlue) {
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_SENDTO).apply { data = "smsto:${contact.phoneNumber}".toUri() })
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error sending SMS", e)
+                            Toast.makeText(context, "SMS gönderilemedi", Toast.LENGTH_SHORT).show()
+                        }
                     }
-                    ActionButtonSmall(Icons.Rounded.AutoFixHigh, "Düzen", EditOrange) {
+                    ActionButtonSmall(Icons. Rounded.AutoFixHigh, "Düzen", EditOrange) {
                         showEditDialog = true
                     }
                 }
@@ -898,17 +972,17 @@ fun FancyAvatarSmall(isGlowActive: Boolean = false) {
                 )
             )
             .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(14.dp)),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment. Center
     ) {
         Canvas(modifier = Modifier.size(20.dp)) {
             val headRadius = size.width * 0.25f
             drawCircle(
                 color = ElectricPurple,
                 radius = headRadius,
-                center = Offset(size.width / 2, size.height * 0.3f)
+                center = Offset(size.width / 2, size. height * 0.3f)
             )
             val path = Path().apply {
-                moveTo(size.width * 0.15f, size.height * 0.9f)
+                moveTo(size. width * 0.15f, size.height * 0.9f)
                 quadraticTo(
                     size.width * 0.5f, size.height * 0.5f,
                     size.width * 0.85f, size.height * 0.9f
@@ -925,7 +999,7 @@ fun BoxScope.FastScrollSidebar(
     listState: LazyListState
 ) {
     val alphabet = remember(contacts) {
-        contacts.map { it.name.firstOrNull()?.uppercase() ?: "#" }.distinct().sorted()
+        contacts.map { it. name.firstOrNull()?.uppercase() ?: "#" }. distinct().sorted()
     }
     val coroutineScope = rememberCoroutineScope()
     var barHeight by remember { mutableFloatStateOf(0f) }
@@ -936,29 +1010,29 @@ fun BoxScope.FastScrollSidebar(
             .padding(end = 4.dp)
             .width(20.dp)
             .fillMaxHeight(0.6f)
-            .onGloballyPositioned { barHeight = it.size.height.toFloat() }
+            .onGloballyPositioned { barHeight = it.size.height. toFloat() }
             .clip(RoundedCornerShape(10.dp))
             .background(SurfaceGrey.copy(alpha = 0.3f))
             .border(0.5.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(10.dp))
             .pointerInput(alphabet) {
-                detectHorizontalDragGestures { change, _ ->
+                detectVerticalDragGestures { change, _ ->
                     val y = change.position.y
                     if (barHeight > 0) {
                         val index = ((y / barHeight) * alphabet.size).toInt()
                             .coerceIn(0, alphabet.size - 1)
                         val char = alphabet[index]
-                        val contactIndex = contacts.indexOfFirst { it.name.startsWith(char, ignoreCase = true) }
+                        val contactIndex = contacts.indexOfFirst { it.name. startsWith(char, ignoreCase = true) }
                         if (contactIndex != -1) {
                             coroutineScope.launch { listState.scrollToItem(contactIndex) }
                         }
                     }
                 }
             },
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment. Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceEvenly,
+            verticalArrangement = Arrangement. SpaceEvenly,
             modifier = Modifier.fillMaxHeight().padding(vertical = 4.dp)
         ) {
             alphabet.forEach { char ->
@@ -966,7 +1040,7 @@ fun BoxScope.FastScrollSidebar(
                     text = char,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    color = ElectricPurple.copy(alpha = 0.7f)
+                    color = ElectricPurple. copy(alpha = 0.7f)
                 )
             }
         }
@@ -988,8 +1062,8 @@ fun ActionButtonSmall(icon: ImageVector, label: String, color: Color, onClick: (
                 .size(44.dp)
                 .scale(scale)
                 .clip(RoundedCornerShape(12.dp))
-                .background(color.copy(alpha = 0.1f))
-                .border(1.dp, color.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                .background(color. copy(alpha = 0.1f))
+                .border(1.dp, color. copy(alpha = 0.15f), RoundedCornerShape(12.dp))
         ) {
             Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(20.dp))
         }
@@ -1001,8 +1075,8 @@ fun ActionButtonSmall(icon: ImageVector, label: String, color: Color, onClick: (
             }
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(label, fontSize = 10.sp, color = color.copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier. height(4.dp))
+        Text(label, fontSize = 10.sp, color = color. copy(alpha = 0.7f), fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1029,8 +1103,8 @@ fun MenuDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 MenuItem(
-                    icon = Icons.AutoMirrored.Rounded.PhoneCallback,
-                    title = if (activeFakeCallTime != null) "Fake Call (Aktif: $activeFakeCallTime)" else "Fake Call (Sahte Arama)",
+                    icon = Icons.AutoMirrored.Rounded. PhoneCallback,
+                    title = if (activeFakeCallTime != null) "Fake Call (Aktif:  $activeFakeCallTime)" else "Fake Call (Sahte Arama)",
                     sub = if (activeFakeCallTime != null) "Aramayı iptal etmek için tıklayın" else "Seni arayan biri varmış gibi yap",
                     color = VividPink,
                     onClick = { if (activeFakeCallTime != null) onCancelFakeCall() else onFakeCallClick() }
@@ -1048,8 +1122,8 @@ fun MenuDialog(
                     modifier = Modifier.fillMaxWidth().clickable { viewModel.toggleFakeCallTheme() }.padding(vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.size(40.dp).background(EditOrange.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
-                        Icon(if (isFakeCallDark) Icons.Rounded.DarkMode else Icons.Rounded.LightMode, contentDescription = null, tint = EditOrange, modifier = Modifier.size(20.dp))
+                    Box(modifier = Modifier.size(40.dp).background(EditOrange. copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(if (isFakeCallDark) Icons.Rounded.DarkMode else Icons.Rounded. LightMode, contentDescription = null, tint = EditOrange, modifier = Modifier. size(20.dp))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
@@ -1063,9 +1137,9 @@ fun MenuDialog(
 }
 
 @Composable
-fun MenuItem(icon: ImageVector, title: String, sub: String, color: Color, onClick: () -> Unit = {}) {
+fun MenuItem(icon: ImageVector, title: String, sub:  String, color: Color, onClick:  () -> Unit = {}) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 10.dp),
+        modifier = Modifier. fillMaxWidth().clickable { onClick() }.padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(modifier = Modifier.size(40.dp).background(color.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
@@ -1118,7 +1192,7 @@ fun HiddenContactsAuthDialog(viewModel: ContactViewModel, onDismiss: () -> Unit)
                         color = SoftGrey
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier. height(20.dp))
 
                     OutlinedTextField(
                         value = passwordInput,
@@ -1130,7 +1204,369 @@ fun HiddenContactsAuthDialog(viewModel: ContactViewModel, onDismiss: () -> Unit)
                         isError = showError,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = VividPink,
+                            unfocusedBorderColor = Color.White. copy(alpha = 0.1f)
+                        )
+                    )
+
+                    if (showError) {
+                        Text("Hatalı şifre!", color = Color.Red, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Button(
+                        onClick = {
+                            if (isSettingPassword) {
+                                if (passwordInput.isNotBlank()) {
+                                    viewModel.setPassword(passwordInput)
+                                    isAuthenticated = true
+                                }
+                            } else {
+                                if (passwordInput == savedPassword) {
+                                    isAuthenticated = true
+                                } else {
+                                    showError = true
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VividPink)
+                    ) {
+                        Text(if (isSettingPassword) "Şifreyi Kaydet" else "Giriş Yap")
+                    }
+                }
+            }
+        }
+    } else if (showPasswordChange) {
+        var newPassword by remember { mutableStateOf("") }
+        Dialog(onDismissRequest = { showPasswordChange = false }) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = SurfaceGrey,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Şifre Değiştir", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Spacer(modifier = Modifier.height(20.dp))
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("Yeni Şifre") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType. NumberPassword),
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = VividPink,
                             unfocusedBorderColor = Color.White.copy(alpha = 0.1f)
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    Button(
+                        onClick = {
+                            if (newPassword.isNotBlank()) {
+                                viewModel. setPassword(newPassword)
+                                showPasswordChange = false
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = VividPink)
+                    ) {
+                        Text("Güncelle")
+                    }
+                }
+            }
+        }
+    } else {
+        Dialog(onDismissRequest = onDismiss) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = DeepCharcoal
+            ) {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            if (showManagement) "Kişileri Yönet" else "Gizli Kişiler",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = VividPink
+                        )
+                        Row {
+                            IconButton(onClick = { showPasswordChange = true }) {
+                                Icon(Icons.Rounded.Settings, contentDescription = "Şifre Değiştir", tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
+                            IconButton(onClick = { showManagement = ! showManagement }) {
+                                Icon(
+                                    if (showManagement) Icons.Rounded.Check else Icons.Rounded.Edit,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            IconButton(onClick = onDismiss) {
+                                Icon(Icons.Rounded.Close, contentDescription = "Kapat", tint = Color.White, modifier = Modifier. size(20.dp))
+                            }
+                        }
+                    }
+
+                    if (showManagement) {
+                        val allContacts by viewModel.contacts.collectAsState()
+                        val hiddenContactIds by viewModel.hiddenContactIds.collectAsState()
+
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            itemsIndexed(allContacts) { _, contact ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Text(contact.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text(contact.phoneNumber, color = SoftGrey, fontSize = 11.sp)
+                                    }
+                                    Switch(
+                                        checked = hiddenContactIds.contains(contact. id),
+                                        onCheckedChange = { viewModel.toggleContactVisibility(contact.id) },
+                                        colors = SwitchDefaults.colors(checkedThumbColor = VividPink, checkedTrackColor = VividPink. copy(alpha = 0.5f)),
+                                        modifier = Modifier.scale(0.8f)
+                                    )
+                                }
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                            }
+                        }
+                    } else {
+                        ContactListScreen(
+                            viewModel = viewModel,
+                            isSearchBarVisible = false,
+                            hasActiveFakeCall = false,
+                            onMenuClick = {},
+                            showOnlyHidden = true
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onScheduled: (String) -> Unit) {
+    val contacts by viewModel.contacts.collectAsState()
+    var selectedContact by remember { mutableStateOf<Contact?>(null) }
+    var callerName by remember { mutableStateOf("") }
+    var delaySeconds by remember { mutableIntStateOf(10) }
+    var useSchedule by remember { mutableStateOf(false) }
+    var scheduledTime by remember { mutableStateOf("Saat Seçin") }
+    var calendar by remember { mutableStateOf<Calendar?>(null) }
+
+    val context = LocalContext.current
+
+    val timePickerDialog = TimePickerDialog(
+        context,
+        { _, hour, minute ->
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.HOUR_OF_DAY, hour)
+            cal.set(Calendar.MINUTE, minute)
+            cal.set(Calendar.SECOND, 0)
+            if (cal.before(Calendar.getInstance())) cal.add(Calendar.DATE, 1)
+            calendar = cal
+            scheduledTime = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
+            useSchedule = true
+        },
+        Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+        Calendar.getInstance().get(Calendar.MINUTE),
+        true
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = SurfaceGrey,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment. CenterHorizontally) {
+                Text("Fake Call Planla", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.White)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(modifier = Modifier.fillMaxWidth().height(100.dp).background(DeepCharcoal, RoundedCornerShape(12.dp)).padding(6.dp)) {
+                    val hiddenContactIds by viewModel.hiddenContactIds.collectAsState()
+                    LazyColumn {
+                        itemsIndexed(contacts) { _, contact ->
+                            if (! hiddenContactIds.contains(contact.id)) {
+                                Text(
+                                    text = contact.name,
+                                    fontSize = 14.sp,
+                                    color = if (selectedContact?. id == contact.id) VividPink else Color.White,
+                                    modifier = Modifier.fillMaxWidth().clickable {
+                                        selectedContact = contact
+                                        callerName = contact.name
+                                    }. padding(6.dp)
+                                )
+                            }
+                        }
+                        item {
+                            Text(
+                                text = "Özel / Bilinmeyen",
+                                fontSize = 14.sp,
+                                color = if (selectedContact == null) VividPink else Color.White,
+                                modifier = Modifier. fillMaxWidth().clickable {
+                                    selectedContact = null
+                                    callerName = ""
+                                }.padding(6.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                CustomTextField(
+                    value = callerName,
+                    onValueChange = { callerName = it; selectedContact = null },
+                    label = "Arayan İsmi",
+                    icon = Icons.Rounded.Edit
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement. SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text(if (useSchedule) "Zamanlı:  $scheduledTime" else "Gecikme: $delaySeconds sn", color = Color.White, fontSize = 14.sp)
+                        Text(text = if (useSchedule) "Belirlenen saatte" else "Geri sayımla", fontSize = 10.sp, color = SoftGrey)
+                    }
+                    Button(
+                        onClick = { timePickerDialog.show() },
+                        colors = ButtonDefaults.buttonColors(containerColor = SurfaceGrey),
+                        border = BorderStroke(1.dp, VividPink. copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Saat Seç", color = VividPink, fontSize = 11.sp)
+                    }
+                }
+
+                if (! useSchedule) {
+                    Slider(
+                        value = delaySeconds. toFloat(),
+                        onValueChange = { delaySeconds = it. roundToInt() },
+                        valueRange = 5f..60f,
+                        colors = SliderDefaults.colors(thumbColor = VividPink, activeTrackColor = VividPink)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+                Button(
+                    onClick. dp))
+
+                MenuItem(
+                    icon = Icons.AutoMirrored.Rounded.PhoneCallback,
+                    title = if (activeFakeCallTime != null) "Fake Call (Aktif:  $activeFakeCallTime)" else "Fake Call (Sahte Arama)",
+                    sub = if (activeFakeCallTime != null) "Aramayı iptal etmek için tıklayın" else "Seni arayan biri varmış gibi yap",
+                    color = VividPink,
+                    onClick = { if (activeFakeCallTime != null) onCancelFakeCall() else onFakeCallClick() }
+                )
+
+                MenuItem(
+                    icon = Icons. Rounded.Lock,
+                    title = "Gizli Bölüm",
+                    sub = "Kişileri gizle ve yönet",
+                    color = ElectricPurple,
+                    onClick = onHiddenContactsClick
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { viewModel.toggleFakeCallTheme() }.padding(vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.size(40.dp).background(EditOrange. copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(if (isFakeCallDark) Icons.Rounded.DarkMode else Icons.Rounded. LightMode, contentDescription = null, tint = EditOrange, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text("Fake Call Teması", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                        Text(if (isFakeCallDark) "Koyu Tema Aktif" else "Açık Tema Aktif", fontSize = 11.sp, color = SoftGrey)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ============ MENU ITEM ============
+@Composable
+fun MenuItem(icon: ImageVector, title: String, sub:  String, color: Color, onClick:  () -> Unit = {}) {
+    Row(
+        modifier = Modifier. fillMaxWidth().clickable { onClick() }.padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier. size(40.dp).background(color.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(title, fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+            Text(sub, fontSize = 11.sp, color = SoftGrey)
+        }
+    }
+}
+
+// ============ HIDDEN CONTACTS AUTH DIALOG ============
+@Composable
+fun HiddenContactsAuthDialog(viewModel: ContactViewModel, onDismiss: () -> Unit) {
+    val savedPassword by viewModel.password.collectAsState()
+    var passwordInput by remember { mutableStateOf("") }
+    var isAuthenticated by remember { mutableStateOf(false) }
+    var showError by remember { mutableStateOf(false) }
+    val isSettingPassword = savedPassword == null
+
+    var showManagement by remember { mutableStateOf(false) }
+    var showPasswordChange by remember { mutableStateOf(false) }
+
+    if (! isAuthenticated) {
+        Dialog(onDismissRequest = onDismiss) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = SurfaceGrey,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        if (isSettingPassword) Icons.Rounded.Security else Icons.Rounded.Lock,
+                        contentDescription = null,
+                        tint = VividPink,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        if (isSettingPassword) "Şifre Belirle" else "Gizli Bölüm",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color. White
+                    )
+                    Spacer(modifier = Modifier.height(6.6.dp))
+                    Text(
+                        if (isSettingPassword) "Lütfen erişim için yeni bir şifre girin" else "Giriş için şifrenizi girin",
+                        fontSize = 13.sp,
+                        color = SoftGrey
+                    )
+
+                    Spacer(modifier = Modifier. height(20.dp))
+
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = { passwordInput = it; showError = false },
+                        label = { Text("Şifre") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = showError,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = VividPink,
+                            unfocusedBorderColor = Color.White. copy(alpha = 0.1f)
                         )
                     )
 
@@ -1190,7 +1626,7 @@ fun HiddenContactsAuthDialog(viewModel: ContactViewModel, onDismiss: () -> Unit)
                     Button(
                         onClick = {
                             if (newPassword.isNotBlank()) {
-                                viewModel.setPassword(newPassword)
+                                viewModel. setPassword(newPassword)
                                 showPasswordChange = false
                             }
                         },
@@ -1224,7 +1660,7 @@ fun HiddenContactsAuthDialog(viewModel: ContactViewModel, onDismiss: () -> Unit)
                             IconButton(onClick = { showPasswordChange = true }) {
                                 Icon(Icons.Rounded.Settings, contentDescription = "Şifre Değiştir", tint = Color.White, modifier = Modifier.size(20.dp))
                             }
-                            IconButton(onClick = { showManagement = !showManagement }) {
+                            IconButton(onClick = { showManagement = ! showManagement }) {
                                 Icon(
                                     if (showManagement) Icons.Rounded.Check else Icons.Rounded.Edit,
                                     contentDescription = null,
@@ -1256,13 +1692,13 @@ fun HiddenContactsAuthDialog(viewModel: ContactViewModel, onDismiss: () -> Unit)
                                         Text(contact.phoneNumber, color = SoftGrey, fontSize = 11.sp)
                                     }
                                     Switch(
-                                        checked = hiddenContactIds.contains(contact.id),
+                                        checked = hiddenContactIds.contains(contact. id),
                                         onCheckedChange = { viewModel.toggleContactVisibility(contact.id) },
-                                        colors = SwitchDefaults.colors(checkedThumbColor = VividPink, checkedTrackColor = VividPink.copy(alpha = 0.5f)),
+                                        colors = SwitchDefaults.colors(checkedThumbColor = VividPink, checkedTrackColor = VividPink. copy(alpha = 0.5f)),
                                         modifier = Modifier.scale(0.8f)
                                     )
                                 }
-                                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+                                HorizontalDivider(color = Color.White. copy(alpha = 0.05f))
                             }
                         }
                     } else {
@@ -1280,6 +1716,7 @@ fun HiddenContactsAuthDialog(viewModel: ContactViewModel, onDismiss: () -> Unit)
     }
 }
 
+// ============ FAKE CALL SETUP DIALOG ============
 @Composable
 fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onScheduled: (String) -> Unit) {
     val contacts by viewModel.contacts.collectAsState()
@@ -1315,7 +1752,7 @@ fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onSc
             color = SurfaceGrey,
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
-            Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment. CenterHorizontally) {
                 Text("Fake Call Planla", fontSize = 18.sp, fontWeight = FontWeight.Black, color = Color.White)
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -1323,15 +1760,15 @@ fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onSc
                     val hiddenContactIds by viewModel.hiddenContactIds.collectAsState()
                     LazyColumn {
                         itemsIndexed(contacts) { _, contact ->
-                            if (!hiddenContactIds.contains(contact.id)) {
+                            if (! hiddenContactIds.contains(contact.id)) {
                                 Text(
                                     text = contact.name,
                                     fontSize = 14.sp,
-                                    color = if (selectedContact?.id == contact.id) VividPink else Color.White,
+                                    color = if (selectedContact?. id == contact.id) VividPink else Color.White,
                                     modifier = Modifier.fillMaxWidth().clickable {
                                         selectedContact = contact
                                         callerName = contact.name
-                                    }.padding(6.dp)
+                                    }. padding(6.dp)
                                 )
                             }
                         }
@@ -1340,7 +1777,7 @@ fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onSc
                                 text = "Özel / Bilinmeyen",
                                 fontSize = 14.sp,
                                 color = if (selectedContact == null) VividPink else Color.White,
-                                modifier = Modifier.fillMaxWidth().clickable {
+                                modifier = Modifier. fillMaxWidth().clickable {
                                     selectedContact = null
                                     callerName = ""
                                 }.padding(6.dp)
@@ -1362,24 +1799,24 @@ fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onSc
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
-                        Text(if (useSchedule) "Zamanlı: $scheduledTime" else "Gecikme: $delaySeconds sn", color = Color.White, fontSize = 14.sp)
+                        Text(if (useSchedule) "Zamanlı:  $scheduledTime" else "Gecikme: $delaySeconds sn", color = Color.White, fontSize = 14.sp)
                         Text(text = if (useSchedule) "Belirlenen saatte" else "Geri sayımla", fontSize = 10.sp, color = SoftGrey)
                     }
                     Button(
                         onClick = { timePickerDialog.show() },
                         colors = ButtonDefaults.buttonColors(containerColor = SurfaceGrey),
-                        border = BorderStroke(1.dp, VividPink.copy(alpha = 0.5f)),
+                        border = BorderStroke(1.dp, VividPink. copy(alpha = 0.5f)),
                         shape = RoundedCornerShape(10.dp)
                     ) {
                         Text("Saat Seç", color = VividPink, fontSize = 11.sp)
                     }
                 }
 
-                if (!useSchedule) {
+                if (! useSchedule) {
                     Slider(
-                        value = delaySeconds.toFloat(),
+                        value = delaySeconds. toFloat(),
                         onValueChange = { delaySeconds = it.roundToInt() },
-                        valueRange = 5f..60f,
+                        valueRange = MIN_DELAY_SECONDS. toFloat()..MAX_DELAY_SECONDS.toFloat(),
                         colors = SliderDefaults.colors(thumbColor = VividPink, activeTrackColor = VividPink)
                     )
                 }
@@ -1387,12 +1824,17 @@ fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onSc
                 Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = {
-                        if (!Settings.canDrawOverlays(context)) {
+                        if (! Settings.canDrawOverlays(context)) {
                             val intent = Intent(
                                 Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                                 Uri.parse("package:${context.packageName}")
                             )
-                            context.startActivity(intent)
+                            try {
+                                context.startActivity(intent)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error opening overlay settings", e)
+                                Toast.makeText(context, "Ayarlar açılamadı", Toast.LENGTH_SHORT).show()
+                            }
                         } else {
                             val name = callerName.ifBlank { "Bilinmeyen Numara" }
                             val number = selectedContact?.phoneNumber ?: ""
@@ -1401,16 +1843,24 @@ fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onSc
                                 putExtra("EXTRA_NAME", name)
                                 putExtra("EXTRA_NUMBER", number)
                             }
-                            val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+                            val pendingIntent = PendingIntent.getBroadcast(
+                                context,
+                                0,
+                                intent,
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            )
                             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-                            val triggerTime = if (useSchedule && calendar != null) calendar!!.timeInMillis else System.currentTimeMillis() + (delaySeconds * 1000)
+                            val triggerTime = if (useSchedule && calendar != null) calendar!! .timeInMillis else System. currentTimeMillis() + (delaySeconds * 1000)
 
-                            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-
-                            showFakeCallNotification(context)
-
-                            val finalTimeStr = if(useSchedule) scheduledTime else "$delaySeconds sn"
-                            onScheduled(finalTimeStr)
+                            try {
+                                alarmManager. setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                                showFakeCallNotification(context)
+                                val finalTimeStr = if(useSchedule) scheduledTime else "$delaySeconds sn"
+                                onScheduled(finalTimeStr)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error setting alarm", e)
+                                Toast.makeText(context, "Çağrı planlanamadı", Toast.LENGTH_SHORT).show()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1424,43 +1874,54 @@ fun FakeCallSetupDialog(viewModel: ContactViewModel, onDismiss: () -> Unit, onSc
     }
 }
 
+// ============ FAKE CALL NOTIFICATION ============
 private fun showFakeCallNotification(context: Context) {
     val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     val channelId = "fake_call_waiting"
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val channel = NotificationChannel(channelId, "Sistem Güncelleme", NotificationManager.IMPORTANCE_LOW)
+        val channel = NotificationChannel(channelId, "Sistem Güncelleme", NotificationManager. IMPORTANCE_LOW)
         notificationManager.createNotificationChannel(channel)
     }
 
     val builder = NotificationCompat.Builder(context, channelId)
-        .setSmallIcon(android.R.drawable.star_on)
+        .setSmallIcon(android. R.drawable.star_on)
         .setContentTitle("Bugün çok güzel bir gün")
         .setContentText("Her şey yolunda gidecek.")
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setOngoing(true)
         .setAutoCancel(false)
         .setSilent(true)
-        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+        .setVisibility(NotificationCompat. VISIBILITY_PUBLIC)
 
-    notificationManager.notify(1, builder.build())
+    try {
+        notificationManager.notify(1, builder.build())
+    } catch (e: Exception) {
+        Log.e(TAG, "Error showing notification", e)
+    }
 }
 
+// ============ CANCEL SCHEDULED FAKE CALL ============
 private fun cancelScheduledFakeCall(context: Context) {
-    val intent = Intent(context, FakeCallReceiver::class.java)
-    val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    alarmManager.cancel(pendingIntent)
+    try {
+        val intent = Intent(context, FakeCallReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(pendingIntent)
 
-    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    notificationManager.cancel(1)
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.cancel(1)
+    } catch (e: Exception) {
+        Log.e(TAG, "Error canceling fake call", e)
+    }
 }
 
+// ============ EMPTY STATE ============
 @Composable
 fun EmptyState() {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement. Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -1471,11 +1932,12 @@ fun EmptyState() {
                 tint = SurfaceGrey
             )
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text("Aradığın kişiyi bulamadım...", color = SoftGrey, fontSize = 14.sp)
+        Spacer(modifier = Modifier. height(12.dp))
+        Text("Aradığın kişiyi bulamadım.. .", color = SoftGrey, fontSize = 14.sp)
     }
 }
 
+// ============ ADD CONTACT DIALOG ============
 @Composable
 fun AddContactDialog(viewModel: ContactViewModel, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
@@ -1498,7 +1960,7 @@ fun AddContactDialog(viewModel: ContactViewModel, onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
                 CustomTextField(value = name, onValueChange = { name = it }, label = "İsim", icon = Icons.Rounded.Badge)
                 Spacer(modifier = Modifier.height(8.dp))
-                CustomTextField(value = number, onValueChange = { number = it }, label = "Telefon", icon = Icons.Rounded.Phone, keyboardType = KeyboardType.Phone)
+                CustomTextField(value = number, onValueChange = { number = it }, label = "Telefon", icon = Icons. Rounded.Phone, keyboardType = KeyboardType.Phone)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -1510,7 +1972,7 @@ fun AddContactDialog(viewModel: ContactViewModel, onDismiss: () -> Unit) {
                         checked = isTemporary,
                         onCheckedChange = { isTemporary = it },
                         colors = CheckboxDefaults.colors(checkedColor = VividPink),
-                        modifier = Modifier.scale(0.9f)
+                        modifier = Modifier. scale(0.9f)
                     )
                     Text("24 Saat Sonra Silinsin", color = Color.White, fontSize = 13.sp)
                 }
@@ -1518,9 +1980,11 @@ fun AddContactDialog(viewModel: ContactViewModel, onDismiss: () -> Unit) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(
                     onClick = {
-                        if (name.isNotBlank() && number.isNotBlank()) {
+                        if (name. isNotBlank() && number.isNotBlank()) {
                             viewModel.addContact(context, name, number, isTemporary)
                             onDismiss()
+                        } else {
+                            Toast.makeText(context, "Lütfen tüm alanları doldurun", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -1534,8 +1998,9 @@ fun AddContactDialog(viewModel: ContactViewModel, onDismiss: () -> Unit) {
     }
 }
 
+// ============ EDIT CONTACT DIALOG ============
 @Composable
-fun EditContactDialog(contact: Contact, onDismiss: () -> Unit, onSave: (Contact) -> Unit) {
+fun EditContactDialog(contact: Contact, onDismiss:  () -> Unit, onSave: (Contact) -> Unit) {
     var name by remember { mutableStateOf(contact.name) }
     var number by remember { mutableStateOf(contact.phoneNumber) }
 
@@ -1550,13 +2015,13 @@ fun EditContactDialog(contact: Contact, onDismiss: () -> Unit, onSave: (Contact)
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 FancyAvatarSmall(true)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier. height(16.dp))
                 CustomTextField(value = name, onValueChange = { name = it }, label = "İsim", icon = Icons.Rounded.Person)
                 Spacer(modifier = Modifier.height(8.dp))
                 CustomTextField(value = number, onValueChange = { number = it }, label = "Numara", icon = Icons.Rounded.Phone, keyboardType = KeyboardType.Phone)
                 Spacer(modifier = Modifier.height(20.dp))
                 Button(
-                    onClick = { onSave(contact.copy(name = name, phoneNumber = number)) },
+                    onClick = { onSave(contact. copy(name = name, phoneNumber = number)) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = ElectricPurple)
@@ -1568,6 +2033,7 @@ fun EditContactDialog(contact: Contact, onDismiss: () -> Unit, onSave: (Contact)
     }
 }
 
+// ============ CUSTOM TEXT FIELD ============
 @Composable
 fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String, icon: ImageVector, keyboardType: KeyboardType = KeyboardType.Text) {
     OutlinedTextField(
@@ -1581,13 +2047,13 @@ fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: Strin
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = ElectricPurple,
             unfocusedBorderColor = Color.White.copy(alpha = 0.1f),
-            focusedTextColor = Color.White,
+            focusedTextColor = Color. White,
             unfocusedTextColor = Color.White
         )
     )
 }
 
-// --- HISTORY SECTION START ---
+// ============ HISTORY SECTION ============
 
 data class MockCall(
     val id: String = java.util.UUID.randomUUID().toString(),
@@ -1595,7 +2061,7 @@ data class MockCall(
     val phoneNumber: String,
     val callType: CallType,
     val location: String,
-    val duration: String,
+    val duration:  String,
     val ringCount: Int = 0,
     val frequency: Int = 1,
     val timestamp: String
@@ -1605,73 +2071,96 @@ enum class CallType {
     Incoming, Outgoing, Missed
 }
 
+// ✅ FIX 4 & 8: History Screen with proper null safety and cursor handling
 @Composable
 fun HistoryScreen() {
     val context = LocalContext.current
     val calls = remember { mutableStateListOf<MockCall>() }
 
     LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED) {
-            val callList = mutableListOf<MockCall>()
-            val cursor = context.contentResolver.query(
-                CallLog.Calls.CONTENT_URI,
-                null, null, null, CallLog.Calls.DATE + " DESC"
-            )
-            
-            cursor?.use {
-                val numberIdx = it.getColumnIndex(CallLog.Calls.NUMBER)
-                val nameIdx = it.getColumnIndex(CallLog.Calls.CACHED_NAME)
-                val typeIdx = it.getColumnIndex(CallLog.Calls.TYPE)
-                val dateIdx = it.getColumnIndex(CallLog.Calls.DATE)
-                val durationIdx = it.getColumnIndex(CallLog.Calls.DURATION)
-                val locationIdx = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    it.getColumnIndex(CallLog.Calls.GEOCODED_LOCATION)
-                } else -1
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission. READ_CALL_LOG) == PackageManager.PERMISSION_GRANTED) {
+            try {
+                val callList = mutableListOf<MockCall>()
+                val cursor = context.contentResolver.query(
+                    CallLog.Calls.CONTENT_URI,
+                    null, null, null, CallLog.Calls.DATE + " DESC"
+                )
 
-                var count = 0
-                while (it.moveToNext() && count < 50) {
-                    val num = it.getString(numberIdx) ?: "Gizli Numara"
-                    val name = it.getString(nameIdx) ?: num
-                    val type = it.getInt(typeIdx)
-                    val date = it.getLong(dateIdx)
-                    val durationSec = it.getInt(durationIdx)
-                    val location = if (locationIdx != -1) it.getString(locationIdx) ?: "Bilinmiyor" else "Bilinmiyor"
+                cursor?.use { c ->
+                    // ✅ FIX 9: Cache column indices to avoid repeated queries
+                    val numberIdx = c.getColumnIndex(CallLog.Calls.NUMBER)
+                    val nameIdx = c.getColumnIndex(CallLog.Calls.CACHED_NAME)
+                    val typeIdx = c.getColumnIndex(CallLog.Calls.TYPE)
+                    val dateIdx = c.getColumnIndex(CallLog.Calls.DATE)
+                    val durationIdx = c.getColumnIndex(CallLog.Calls. DURATION)
+                    val locationIdx = c.getColumnIndex(CallLog.Calls.GEOCODED_LOCATION)
 
-                    val callType = when (type) {
-                        CallLog.Calls.INCOMING_TYPE -> CallType.Incoming
-                        CallLog.Calls.OUTGOING_TYPE -> CallType.Outgoing
-                        CallLog.Calls.MISSED_TYPE -> CallType.Missed
-                        else -> CallType.Incoming
+                    var count = 0
+                    while (c.moveToNext() && count < MAX_CALL_LOG_ITEMS) {
+                        try {
+                            val num = if (numberIdx >= 0) c.getString(numberIdx) else null ?: "Gizli Numara"
+                            val name = if (nameIdx >= 0) c.getString(nameIdx) else null ?: num
+                            val type = if (typeIdx >= 0) c.getInt(typeIdx) else CallLog.Calls.INCOMING_TYPE
+                            val date = if (dateIdx >= 0) c.getLong(dateIdx) else System.currentTimeMillis()
+                            val durationSec = if (durationIdx >= 0) c.getInt(durationIdx) else 0
+                            val location = if (locationIdx >= 0 && locationIdx != -1) c.getString(locationIdx) else null
+                            val locationStr = location ?: "Bilinmiyor"
+
+                            val callType = when (type) {
+                                CallLog.Calls. INCOMING_TYPE -> CallType.Incoming
+                                CallLog.Calls.OUTGOING_TYPE -> CallType.Outgoing
+                                CallLog. Calls.MISSED_TYPE -> CallType.Missed
+                                else -> CallType.Incoming
+                            }
+
+                            val durationStr = if (durationSec > 60) "${durationSec / 60} dk ${durationSec % 60} sn" else "$durationSec sn"
+                            val timeStr = android.text.format.DateFormat. format("HH:mm", Date(date)).toString()
+
+                            callList.add(MockCall(
+                                name = name,
+                                phoneNumber = num,
+                                callType = callType,
+                                location = locationStr,
+                                duration = durationStr,
+                                timestamp = timeStr
+                            ))
+                            count++
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Error reading call log entry", e)
+                        }
                     }
-
-                    val durationStr = if (durationSec > 60) "${durationSec / 60} dk ${durationSec % 60} sn" else "$durationSec sn"
-                    val timeStr = android.text.format.DateFormat.format("HH:mm", Date(date)).toString()
-
-                    callList.add(MockCall(
-                        name = name,
-                        phoneNumber = num,
-                        callType = callType,
-                        location = location,
-                        duration = durationStr,
-                        timestamp = timeStr
-                    ))
-                    count++
                 }
+                calls.clear()
+                calls.addAll(callList)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error reading call log", e)
+                Toast.makeText(context, "Çağrı geçmişi okunamadı", Toast.LENGTH_SHORT).show()
             }
-            calls.clear()
-            calls.addAll(callList)
         }
     }
 
+    // ✅ FIX 10: Performance optimization - calculate stats only when needed
     val callStats by remember {
         derivedStateOf {
-            val totalSec = calls.filter { it.callType != CallType.Missed }
-                .sumOf { 
-                    val valStr = it.duration.replace(" dk", "").replace(" sn", "")
-                    val parts = valStr.split(" ")
-                    if (parts.size >= 2) (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
-                    else (parts[0].toIntOrNull() ?: 0)
+            var totalSec = 0L
+            calls.filter { it.callType != CallType.Missed }.forEach { call ->
+                try {
+                    val valStr = call.duration.replace(" dk", "").replace(" sn", "").trim()
+                    val parts = valStr.split(" ").filter { it.isNotEmpty() }
+                    when (parts.size) {
+                        2 -> {
+                            val minutes = parts[0].toLongOrNull() ?: 0L
+                            val seconds = parts[1].toLongOrNull() ?: 0L
+                            totalSec += (minutes * 60) + seconds
+                        }
+                        1 -> {
+                            totalSec += valStr.toLongOrNull() ?: 0L
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "Error parsing duration:  ${call.duration}", e)
                 }
+            }
             val totalDuration = if (totalSec > 60) "${totalSec / 60} dk ${totalSec % 60} sn" else "$totalSec sn"
             val missed = calls.count { it.callType == CallType.Missed }
             val rate = if (calls.isNotEmpty()) "${(missed * 100) / calls.size}%" else "0%"
@@ -1692,31 +2181,32 @@ fun HistoryScreen() {
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 100.dp)
+            contentPadding = PaddingValues(top = 4.dp, bottom = 100.dp)
         ) {
-            itemsIndexed(items = calls, key = { _, it -> it.id }) { index, call ->
+            items(items = calls, key = { it.id }) { call ->
                 HistoryItem(
                     call = call,
-                    onDelete = { if (index < calls.size) calls.removeAt(index) }
+                    onDelete = { calls.remove(call) }
                 )
             }
         }
     }
 }
 
+// ============ WEEKLY SUMMARY CARD ============
 @Composable
-fun WeeklySummaryCard(stats: Pair<String, String>) {
+fun WeeklySummaryCard(stats:  Pair<String, String>) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 12.dp)
             .height(100.dp),
-        color = Color.White.copy(alpha = 0.05f),
+        color = Color.White. copy(alpha = 0.05f),
         shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
     ) {
         Row(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+            modifier = Modifier. fillMaxSize().padding(horizontal = 24.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -1724,7 +2214,7 @@ fun WeeklySummaryCard(stats: Pair<String, String>) {
                 Text("Toplam Konuşma", color = SoftGrey, fontSize = 11.sp)
                 Text(stats.first, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             }
-            Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.White.copy(alpha = 0.1f)))
+            Box(modifier = Modifier.width(1.dp).height(40.dp).background(Color.White. copy(alpha = 0.1f)))
             Column(horizontalAlignment = Alignment.End) {
                 Text("Cevapsız Oranı", color = SoftGrey, fontSize = 11.sp)
                 Text(stats.second, color = VividPink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -1733,21 +2223,22 @@ fun WeeklySummaryCard(stats: Pair<String, String>) {
     }
 }
 
+// ============ HISTORY ITEM ============
 @Composable
 fun HistoryItem(call: MockCall, onDelete: () -> Unit) {
     val density = LocalDensity.current
     val swipeOffset = remember { Animatable(0f) }
-    val maxDismiss = with(density) { -100.dp.toPx() }
+    val maxDismiss = with(density) { -100. dp.toPx() }
     val coroutineScope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 2.dp)
-            .background(if (swipeOffset.value < -20f) Color.Red.copy(alpha = 0.2f) else Color.Transparent)
+            .background(if (swipeOffset.value < -20f) Color.Red. copy(alpha = 0.2f) else Color.Transparent)
     ) {
         Icon(
-            Icons.Rounded.DeleteSweep,
+            Icons. Rounded.DeleteSweep,
             contentDescription = null,
             tint = Color.White,
             modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp).alpha(0.6f)
@@ -1762,7 +2253,8 @@ fun HistoryItem(call: MockCall, onDelete: () -> Unit) {
                     detectHorizontalDragGestures(
                         onDragEnd = {
                             coroutineScope.launch {
-                                if (swipeOffset.value < maxDismiss * 0.7f) {
+                                val threshold = 0.7f
+                                if (swipeOffset.value < maxDismiss * threshold) {
                                     swipeOffset.animateTo(maxDismiss, spring(stiffness = Spring.StiffnessLow))
                                     onDelete()
                                 } else {
@@ -1785,22 +2277,22 @@ fun HistoryItem(call: MockCall, onDelete: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             val (icon, color) = when (call.callType) {
-                CallType.Incoming -> Icons.AutoMirrored.Rounded.CallReceived to CallGreen
+                CallType. Incoming -> Icons.AutoMirrored.Rounded.CallReceived to CallGreen
                 CallType.Outgoing -> Icons.AutoMirrored.Rounded.CallMade to MsgBlue
-                CallType.Missed -> Icons.AutoMirrored.Rounded.CallMissed to Color.Red
+                CallType.Missed -> Icons.AutoMirrored.Rounded. CallMissed to Color.Red
             }
 
             Box(
                 modifier = Modifier
                     .size(42.dp)
-                    .background(color.copy(alpha = 0.1f), CircleShape)
-                    .border(1.dp, color.copy(alpha = 0.2f), CircleShape),
-                contentAlignment = Alignment.Center
+                    .background(color. copy(alpha = 0.1f), CircleShape)
+                    .border(1.dp, color. copy(alpha = 0.2f), CircleShape),
+                contentAlignment = Alignment. Center
             ) {
                 Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier. width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1811,8 +2303,8 @@ fun HistoryItem(call: MockCall, onDelete: () -> Unit) {
                 )
                 Text(text = call.location, color = SoftGrey, fontSize = 11.sp)
                 Text(
-                    text = if (call.callType == CallType.Missed) "Çaldırıldı • ${call.ringCount} kez" else call.duration,
-                    color = color.copy(alpha = 0.8f),
+                    text = if (call. callType == CallType.Missed) "Çaldırıldı • ${call.ringCount} kez" else call.duration,
+                    color = color. copy(alpha = 0.8f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
